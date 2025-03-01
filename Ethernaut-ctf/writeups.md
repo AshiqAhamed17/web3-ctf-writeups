@@ -207,6 +207,9 @@ player
 And importantly the command `contract.abi` gives all the available function for this contract.
 
 2️⃣ To see all available functions, use:
+```javascript
+contract.abi()
+```
 ![contract.abi image](assets/img.png)
 
 3️⃣ Exploit the Faulty Constructor
