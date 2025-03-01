@@ -1,3 +1,96 @@
+<style>
+/* General Page Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: rgba(34, 36, 48, 0.95);
+    color: #ffffff;
+    line-height: 1.6;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Headings with Glowing Effect */
+h1, h2, h3 {
+    text-align: left;
+    font-weight: bold;
+    text-shadow: 1px 1px 12px rgba(46, 47, 47, 0.3);
+}
+
+h1 {
+    color: rgb(0, 234, 255);
+    font-size: 2em;
+}
+
+h2 {
+    color: rgb(223, 49, 66);
+    font-size: 1.8em;
+}
+
+h3 {
+    color: rgb(248, 94, 119);
+    font-size: 1.5em;
+}
+
+/* Code Blocks - Dark Themed */
+code {
+    background: #1e1e1e;
+    color: #00ffc8;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+pre {
+    background: #1e1e1e;
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 14px;
+    box-shadow: 0px 0px 10px rgba(0, 255, 200, 0.3);
+}
+
+/* Blockquotes - Stand Out Notes */
+blockquote {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-left: 5px solid rgb(197, 194, 183);
+    color: rgb(235, 235, 235);
+    font-style: italic;
+    box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
+}
+
+/* Tables - Sleek & Minimal */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.2);
+}
+
+th, td {
+    border: 1px solid rgb(127, 227, 243);
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background: rgba(127, 227, 243, 0.3);
+    color: white;
+}
+
+/* Images */
+img {
+    border-radius: 10px;
+    max-width: 100%;
+    height: auto;
+    box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.3);
+}
+</style>
+
+
 # Ethernaut WriteUps
 
 Ethernaut is OpenZeppelin’s wargame to learn about Ethereum smart contract security.
@@ -15,7 +108,7 @@ forge 0.3.0 (5a8bd89 2024-12-20T08:45:53.204298000Z)
 ```
 Then you are good to go...
 
-### **Step 1: Set Up the Solution Script**
+### Step 1: Set Up the Solution Script
 1. Navigate to your Foundry project.
 2. Inside the **`script/`** folder, create a solution file (e.g., `ChallengeSolution.s.sol`).
 3. Your script should:
@@ -23,7 +116,7 @@ Then you are good to go...
    - **Execute the exploit** (e.g., calling functions, sending ETH, or manipulating storage).
    - **Verify that the exploit was successful**.
 
-### **Step 2: Load Environment Variables**
+### Step 2: Load Environment Variables
 Before running the script, ensure your **`.env`** file is correctly formatted:
 ```ini
 PRIVATE_KEY=your_private_key
@@ -36,7 +129,7 @@ Then, load the environment variables:
 source .env
 ```
 
-### **Step 3: Execute the Script on Sepolia**
+### Step 3: Execute the Script on Sepolia
 To execute your solution on the Sepolia network, run:
 
 ```ini
