@@ -1,3 +1,9 @@
+# WRITEUP:
+[📄 Read Writeups](./writeups.md)
+
+---
+
+
 # **Web3 CTF Write-ups 🏴‍☠️ - Smart Contract Security Challenges**
 
 📌 **Web3-CTF-Writeups** is a collection of **detailed write-ups, solutions, and exploit explanations** for various **Web3 security CTF challenges**.  
