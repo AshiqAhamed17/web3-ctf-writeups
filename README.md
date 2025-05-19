@@ -1,5 +1,5 @@
 # WRITEUP:
-[📄 Read Writeups](./writeups.md)
+[📄 Read Writeups](./Ethernaut-ctf/writeups.md)
 
 ---
 
